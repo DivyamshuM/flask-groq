@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Groq Chat</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-black text-white flex items-center justify-center p-6">
+
+  <div class="w-full max-w-3xl rounded-2xl border border-white/10 bg-zinc-950 shadow-2xl">
+    <div class="border-b border-white/10 px-6 py-5">
+      <p class="text-xs uppercase tracking-[0.2em] text-zinc-500">AI Assistant</p>
+      <h1 class="mt-2 text-3xl font-semibold text-white">Groq Chat</h1>
+      <p class="mt-2 text-sm text-zinc-400">
+        A simple chat interface connected to your deployed Flask API on render.com
+      </p>
+    </div>
+
+    <div class="p-6">
+      <div id="chatBox" class="h-[420px] overflow-y-auto rounded-2xl border border-white/10 bg-zinc-900 p-4 space-y-4">
+        <div class="max-w-[80%] rounded-2xl rounded-bl-md bg-zinc-800 px-4 py-3 text-sm text-zinc-100">
+          Hello! I’m connected to your Groq backend. Ask me anything.
+        </div>
+        <div id="typing" class="hidden text-sm text-zinc-500">Thinking...</div>
+      </div>
+
+      <div class="mt-4 flex gap-3">
+        <input
+          id="message"
+          type="text"
+          placeholder="Type your message..."
+          onkeydown="handleKey(event)"
+          class="flex-1 rounded-xl border border-white/10 bg-zinc-900 px-4 py-3 text-sm text-white placeholder:text-zinc-500 outline-none focus:border-zinc-500"
+        />
+        <button
+          onclick="sendMessage()"
+          class="rounded-xl bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-zinc-200"
+        >
+          Send
+        </button>
+      </div>
+
+      <div class="mt-4 text-xs text-zinc-500">
+        Backend: https://flask-groq.onrender.com
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function sendMessage() {
+      const input = document.getElementById("message");
+      const chatBox = document.getElementById("chatBox");
+      const typing = document.getElementById("typing");
+      const message = input.value.trim();
+
+      if (!message) return;
+
+      addMessage(message, "user");
+      input.value = "";
+      typing.classList.remove("hidden");
+      chatBox.scrollTop = chatBox.scrollHeight;
+
+      try {
+        const response = await fetch("https://flask-groq.onrender.com/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message })
+        });
+
+        const data = await response.json();
+        typing.classList.add("hidden");
+
+        if (data.success) {
+          addMessage(data.response, "assistant");
+        } else {
+          addMessage("Error: " + data.error, "assistant");
+        }
+      } catch (error) {
+        typing.classList.add("hidden");
+        addMessage("Request failed. Please try again.", "assistant");
+      }
+    }
+
+    function addMessage(text, role) {
+      const chatBox = document.getElementById("chatBox");
+      const typing = document.getElementById("typing");
+
+      const div = document.createElement("div");
+      div.className =
+        role === "user"
+          ? "ml-auto max-w-[80%] rounded-2xl rounded-br-md bg-white px-4 py-3 text-sm text-black"
+          : "max-w-[80%] rounded-2xl rounded-bl-md bg-zinc-800 px-4 py-3 text-sm text-zinc-100";
+
+      div.innerText = text;
+      chatBox.insertBefore(div, typing);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function handleKey(event) {
+      if (event.key === "Enter") sendMessage();
+    }
+  </script>
+</body>
+</html>
